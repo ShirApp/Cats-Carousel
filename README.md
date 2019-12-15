@@ -1,4 +1,4 @@
-# Cat Facts Carousel :)
+# Cats Facts Carousel :)
 
 The app includes a carousel of cat cards, in which you can save your favorite ones!
 Are you ready for the cool animation? :)
