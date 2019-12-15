@@ -1,0 +1,104 @@
+import axios from 'axios';
+
+const Facts = 'https://cors-anywhere.herokuapp.com/https://cat-fact.herokuapp.com/facts/random?animal_type=cat&amount=25'
+const Imgs = 'https://cors-anywhere.herokuapp.com/http://thecatapi.com/api/images/get?format=json&results_per_page=25'
+
+// INITIAL STATE
+export const defaultCats = {
+  isFetching: true,
+  byId: {
+    0: {
+      id: 0,
+      imgUrl: '',
+      fact: '',
+      favorite: false
+    }
+  },
+  allIds: [],
+  favorites: 0
+};
+
+// ACTION TYPES
+const GET_CATS = 'GET_CATS';
+const TOGGLE_FAVORITE = 'TOGGLE_FAVORITE';
+
+// ACTION CREATORS
+export const gotCats = cats => ({
+  type: GET_CATS,
+  cats
+});
+
+export const toggleFavorite = catId => ({
+  type: TOGGLE_FAVORITE,
+  catId
+});
+
+// THUNK CREATORS
+export const getCats = () => dispatch =>
+  Promise.all([getImages(), getFacts()])
+    .then(array => {
+      const [images, facts] = array;
+      return images.map((img, i) => ({
+        id: img.id,
+        imgUrl: img.url,
+        fact: facts[i].text
+      }));
+    })
+    .then(array => dispatch(gotCats(array)))
+    .catch(err => console.error(err));
+
+// API REQUESTS
+const getImages = () =>
+  axios
+    .get(Imgs)
+    .then(images => images.data)
+    .catch(err => console.error(err));
+
+const getFacts = () =>
+  axios
+    .get(Facts)
+    .then(facts => facts.data)
+    .catch(err => console.error(err));
+
+// REDUCER
+export default function(state = defaultCats, action) {
+  switch (action.type) {
+    case GET_CATS:
+      return {
+        isFetching: false,
+        byId: action.cats.reduce((result, cat) => {
+          cat.favorite = false;
+          result[cat.id] = cat;
+          return result;
+        }, {}),
+        allIds: action.cats.map(cat => cat.id),
+        favorites: 0
+      };
+    case TOGGLE_FAVORITE:
+      let cat = state.byId[action.catId];
+      return {
+        ...state,
+        byId: {
+          ...state.byId,
+          [action.catId]: { ...cat, favorite: !cat.favorite }
+        },
+        favorites: cat.favorite ? state.favorites - 1 : state.favorites + 1
+      };
+    default:
+      return state;
+  }
+}
+
+// SELECTORS
+export const selectAllCats = state =>
+  state.cats.allIds.reduce((result, id) => {
+    result.push(state.cats.byId[id]);
+    return result;
+  }, []);
+
+export const selectAllFavorites = state =>
+  state.cats.allIds.reduce((result, id) => {
+    let cat = state.cats.byId[id];
+    if (cat.favorite) result.push(cat);
+    return result;
+  }, []);
